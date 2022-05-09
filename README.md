@@ -1,4 +1,4 @@
-# System Operatus
+# jOSeph v5
 
 ## Overview
 Attempt to create a new Operating System based on tutorials from https://wiki.osdev.org
@@ -13,4 +13,4 @@ Attempt to create a new Operating System based on tutorials from https://wiki.os
 ## Build instructions
 Instructions assume using Windows
 1) Then you can build the `.iso` by running `make`
-2) Run the OS with Qemu VM using `qemu-system-i386 -cdrom .\build\operatus.iso`
+2) Run the OS with Qemu VM using `qemu-system-i386 -cdrom .\build\jOSeph.iso`

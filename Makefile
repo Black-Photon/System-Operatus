@@ -11,14 +11,14 @@ AS=$(GCC_DIR)/bin/i686-elf-as.exe
 
 CFLAGS=-std=gnu99 -ffreestanding -O2 -Wall -Wextra
 
-operatus.iso: operatus.elf
+jOSeph.iso: jOSeph.elf
 	mkdir -p $(GRUB_DIR)
-	cp $(BUILD_DIR)/operatus.elf $(BOOT_DIR)/operatus.elf
+	cp $(BUILD_DIR)/jOSeph.elf $(BOOT_DIR)/jOSeph.elf
 	cp $(SRC_DIR)/grub.cfg $(GRUB_DIR)/grub.cfg
-	wsl grub-mkrescue -o $(BUILD_DIR)/operatus.iso $(ISO_DIR)
+	wsl grub-mkrescue -o $(BUILD_DIR)/jOSeph.iso $(ISO_DIR)
 
-operatus.elf: boot.o kernel.o
-	$(CC) -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/operatus.elf -ffreestanding -O2 -nostdlib $(BUILD_DIR)/boot.o $(BUILD_DIR)/kernel.o -lgcc
+jOSeph.elf: boot.o kernel.o
+	$(CC) -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/jOSeph.elf -ffreestanding -O2 -nostdlib $(BUILD_DIR)/boot.o $(BUILD_DIR)/kernel.o -lgcc
 
 kernel.o:
 	mkdir -p build
