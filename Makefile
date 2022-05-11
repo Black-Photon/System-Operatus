@@ -1,32 +1,33 @@
-BUILD_DIR := ./build
-SRC_DIR := ./src
-ISO_DIR := $(BUILD_DIR)/isodir
-BOOT_DIR := $(ISO_DIR)/boot
-GRUB_DIR := $(BOOT_DIR)/grub
+CC := x86_64-w64-mingw32-gcc
 
-GCC_DIR := ../Programs/i686-elf-tools-windows
+GNU_EFI := ./libs/gnu-efi-3.0.14
+OVMF := ./libs/ovmf-blobs/bios64.bin
 
-CC=$(GCC_DIR)/bin/i686-elf-gcc.exe
-AS=$(GCC_DIR)/bin/i686-elf-as.exe
+SRC := ./src
+BUILD := ./build
 
-CFLAGS=-std=gnu99 -ffreestanding -O2 -Wall -Wextra
+cdimage.iso: fat.img
+	mkdir $(BUILD)/iso
+	cp $(BUILD)/fat.img $(BUILD)/iso
+	xorriso -as mkisofs -R -f -e fat.img -no-emul-boot -o $(BUILD)/cdimage.iso $(BUILD)/iso
 
-jOSeph.iso: jOSeph.elf
-	mkdir -p $(GRUB_DIR)
-	cp $(BUILD_DIR)/jOSeph.elf $(BOOT_DIR)/jOSeph.elf
-	cp $(SRC_DIR)/grub.cfg $(GRUB_DIR)/grub.cfg
-	wsl grub-mkrescue -o $(BUILD_DIR)/jOSeph.iso $(ISO_DIR)
+fat.img: BOOTX64.EFI
+	dd if=/dev/zero of=$(BUILD)/fat.img bs=1k count=1440
+	mformat -i $(BUILD)/fat.img -f 1440 ::
+	mmd -i $(BUILD)/fat.img ::/EFI
+	mmd -i $(BUILD)/fat.img ::/EFI/BOOT
+	mcopy -i $(BUILD)/fat.img $(BUILD)/BOOTX64.EFI ::/EFI/BOOT
 
-jOSeph.elf: boot.o kernel.o
-	$(CC) -T $(SRC_DIR)/linker.ld -o $(BUILD_DIR)/jOSeph.elf -ffreestanding -O2 -nostdlib $(BUILD_DIR)/boot.o $(BUILD_DIR)/kernel.o -lgcc
+BOOTX64.EFI: hello.o data.o
+	$(CC) -nostdlib -Wl,-dll -shared -Wl,--subsystem,10 -e efi_main -o $(BUILD)/BOOTX64.EFI $(BUILD)/hello.o $(BUILD)/data.o
 
-kernel.o:
-	mkdir -p build
-	$(CC) -c $(SRC_DIR)/kernel.c -o $(BUILD_DIR)/kernel.o $(CFLAGS) 
+hello.o:
+	mkdir -p $(BUILD)
+	$(CC) -ffreestanding -I"$(GNU_EFI)/inc" -I"$(GNU_EFI)/inc/x86_64" -I"$(GNU_EFI)/inc/protocol" -c -o $(BUILD)/hello.o $(SRC)/hello.c
 
-boot.o:
-	mkdir -p build
-	$(AS) $(SRC_DIR)/boot.s -o $(BUILD_DIR)/boot.o
+data.o:
+	mkdir -p $(BUILD)
+	$(CC) -ffreestanding -I"$(GNU_EFI)/inc" -I"$(GNU_EFI)/inc/x86_64" -I"$(GNU_EFI)/inc/protocol" -c -o $(BUILD)/data.o $(SRC)/gnu-efi/lib/data.c
 
 clean:
-	rm -r $(BUILD_DIR)
+	rm -r build
