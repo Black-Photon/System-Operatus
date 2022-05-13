@@ -18,12 +18,12 @@ fat.img: BOOTX64.EFI
 	mmd -i $(BUILD)/fat.img ::/EFI/BOOT
 	mcopy -i $(BUILD)/fat.img $(BUILD)/BOOTX64.EFI ::/EFI/BOOT
 
-BOOTX64.EFI: hello.o data.o
-	$(CC) -nostdlib -Wl,-dll -shared -Wl,--subsystem,10 -e efi_main -o $(BUILD)/BOOTX64.EFI $(BUILD)/hello.o $(BUILD)/data.o
+BOOTX64.EFI: boot.o data.o
+	$(CC) -nostdlib -Wl,-dll -shared -Wl,--subsystem,10 -e efi_main -o $(BUILD)/BOOTX64.EFI $(BUILD)/boot.o $(BUILD)/data.o
 
-hello.o:
+boot.o:
 	mkdir -p $(BUILD)
-	$(CC) -ffreestanding -I"$(GNU_EFI)/inc" -I"$(GNU_EFI)/inc/x86_64" -I"$(GNU_EFI)/inc/protocol" -c -o $(BUILD)/hello.o $(SRC)/hello.c
+	$(CC) -ffreestanding -I"$(GNU_EFI)/inc" -I"$(GNU_EFI)/inc/x86_64" -I"$(GNU_EFI)/inc/protocol" -c -o $(BUILD)/boot.o $(SRC)/boot.c
 
 data.o:
 	mkdir -p $(BUILD)
