@@ -1,3 +1,2 @@
-TARGET = BOOTX64.EFI
+TARGET = target.efi
 include uefi/Makefile
-
