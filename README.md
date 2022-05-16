@@ -4,7 +4,7 @@
 Attempt to create a new Operating System based on tutorials from https://wiki.osdev.org
 
 ## Dependancies
-- Requires wsl installed with the following packages:
+- Requires linux/wsl installed with the following packages:
   - `xorriso`
   - `qemu`
   - `ovmf`
@@ -17,6 +17,6 @@ Attempt to create a new Operating System based on tutorials from https://wiki.os
 - Requires OVMF binaries
 
 ## Build instructions
-Instructions assume using Windows
+Instructions assume using WSL for `make` and Windows for `./run.ps1`.
 1) Build using `make`
 2) Run using `./run.ps1`

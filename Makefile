@@ -20,4 +20,4 @@ BOOTX64.EFI:
 	cd $(SRC) && make clean
 
 clean:
-	rm -r build
+	rm -r $(BUILD)/*
