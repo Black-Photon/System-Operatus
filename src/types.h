@@ -51,8 +51,31 @@ struct xsdt {
     char_t entry;
 } __attribute__((packed));
 
+struct mcfg {
+    char_t signature[4];
+    uint32_t length;
+    uint8_t revision;
+    uint8_t checksum;
+    char_t oemid[6];
+    uint64_t oem_table_id;
+    uint32_t oem_revision;
+    uint32_t creator_id;
+    uint32_t creator_revision;
+    uint64_t reserved;
+    char_t entry;
+} __attribute__((packed));
+
+struct mcfg_entry {
+    uint64_t base_address;
+    uint16_t pci_segment_group_number;
+    uint8_t start_bus_no;
+    uint8_t end_bus_no;
+    uint32_t reserved;
+} __attribute__((packed));
+
 typedef struct rsdp rsdp_t;
 typedef struct xsdt xsdt_t;
-
+typedef struct mcfg mcfg_t;
+typedef struct mcfg_entry mcfg_entry_t;
 
 #endif

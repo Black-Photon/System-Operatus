@@ -34,11 +34,33 @@ rsdp_t *get_rsdp_table() {
     return NULL;
 }
 
+mcfg_t *get_mcfg_table(xsdt_t *xsdt) {
+    uint32_t no_entries = (xsdt->length-36)/8;
+    uint64_t *entry_ptr = (uint64_t *) &xsdt->entry;
+    for (int i = 0; i < no_entries; i++) {
+        void *entry = (void *) entry_ptr[i];
+
+        char_t entry_sig[4];
+        memcpy(entry_sig, entry, 4);
+
+        if(strncmp(entry_sig, "MCFG", 4) == 0) {
+            return (mcfg_t *) entry;
+        }
+    }
+    return NULL;
+}
+
+void handle_error(char *string) {
+    printf(string);
+    printf("Enter anything to continue: ");
+    char c = getchar();
+}
+
 int main(int argc, char **argv)
 {
     rsdp_t *rsdp = get_rsdp_table();
     if (rsdp == NULL) {
-        printf("Could not find RSDP table\n");
+        handle_error("Could not find RSDP table v2\n");
         return 1;
     }
 
@@ -54,6 +76,21 @@ int main(int argc, char **argv)
     printf("RSDP OEMID: %s\n", rsdp_oemid);
     printf("RSDP Length: %d\n", rsdp->length);
     printf("RSDP Extended Checksum Verifies: %s\n", verify_checksum((char *) rsdp, 36) ? "true" : "false");
+    
+    if (verify_checksum((char *) rsdp, 20) == false) {
+        handle_error("Invalid RSDP table\n");
+        return 1;
+    }
+    
+    if (rsdp->revision == 1) {
+        handle_error("RSDP table loaded is v1, when v2 is required\n");
+        return 1;
+    } else { // Assume future revisions have same structure up to 36 bytes
+        if (verify_checksum((char *) rsdp, 36) == false) {
+            handle_error("Invalid RSDP table\n");
+            return 1;
+        }
+    }
 
     xsdt_t *xsdt = (xsdt_t *) rsdp->xsdt_address;
 
@@ -64,15 +101,40 @@ int main(int argc, char **argv)
     printf("XSDT Signature: %s\n", xsdt_sig);
     printf("XSDT Length: %d\n", xsdt->length);
 
-    uint32_t no_entries = (xsdt->length-36)/8;
-    uint64_t *entry_ptr = (uint64_t *) &xsdt->entry;
-    for (int i = 0; i < no_entries; i++) {
-        void *entry = (void *) entry_ptr[i];
-        char_t entry_sig[5];
-        memcpy(entry_sig, entry, 4);
-        entry_sig[4] = '\0';
-        printf("XSDT Entry %d: %s\n", i, entry_sig);
+    
+    mcfg_t *mcfg = get_mcfg_table(xsdt);
+
+    if (mcfg == NULL) {
+        handle_error("Could not find MCFG table\nCheck your device has PCIe support enabled\n");
+        return 1;
     }
+    
+    char_t entry_sig[5];
+    memcpy(entry_sig, mcfg->signature, 4);
+    entry_sig[4] = '\0';
+    
+    printf("MCFG Signature: %s\n", entry_sig);
+    printf("MCFG Length: %d\n", mcfg->length);
+    printf("MCFG Checksum Verifies: %s\n", verify_checksum((char *) mcfg, mcfg->length) ? "true" : "false");
+
+    if (verify_checksum((char *) mcfg, mcfg->length) == false) {
+        handle_error("Invalid MCFG table\n");
+        return 1;
+    }
+
+
+    uint32_t no_entries = (mcfg->length-44)/16;
+    mcfg_entry_t *entry_ptr = (mcfg_entry_t *) &mcfg->entry;
+    for (size_t i = 0; i < no_entries; i++) {
+        mcfg_entry_t *entry = &entry_ptr[i];
+
+        printf("MCFG Entry %d:\n", i);
+        printf("- Base address: %lx\n", entry->base_address);
+        printf("- PCI segment group number: %d\n", entry->pci_segment_group_number);
+        printf("- Start bus number: %d\n", entry->start_bus_no);
+        printf("- End bus number: %d\n", entry->end_bus_no);        
+    }
+
 
     printf("Enter anything to continue: ");
     char c = getchar();
