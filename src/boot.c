@@ -2,6 +2,7 @@
 #include <stdbool.h>
 
 #include "types.h"
+#include "std.h"
 
 bool are_guids_eq(efi_guid_t guid1, efi_guid_t guid2) {
     size_t size = 16;
@@ -56,62 +57,35 @@ void handle_error(char *string) {
     char c = getchar();
 }
 
-void *get_physical_address(uint8_t bus, uint8_t device, uint8_t function, uint8_t *starting_address, uint8_t starting_bus) {
-    return (void *) (starting_address + ((bus - starting_bus) << 20 | device << 15 | function << 12));
+pci_header_t *get_physical_address(uint8_t bus, uint8_t device, uint8_t function, uint8_t *starting_address, uint8_t starting_bus) {
+    return (pci_header_t *) (starting_address + ((bus - starting_bus) << 20 | device << 15 | function << 12));
 }
-
-uint16_t get_vendor_id(uint16_t *physical_address) {   
-    return physical_address[1];
-}
-
-uint8_t get_header_type(uint8_t *physical_address) {
-    return physical_address[13];
-}
-
-uint8_t get_base_class(uint8_t *physical_address) {
-
-}
-
-uint8_t get_sub_class(uint8_t *physical_address) {
-
-}
-
-uint8_t get_secondary_bus(uint8_t *physical_address) {
-
-}
-
-// void check_function(uint8_t bus, uint8_t device, uint8_t function) {
-//     uint8_t base_class;
-//     uint8_t sub_class;
-//     uint8_t secondary_bus;
-
-//     base_class = get_base_class(bus, device, function);
-//     sub_class = get_sub_class(bus, device, function);
-//     if ((base_class == 0x6) && (sub_class == 0x4)) {
-//         secondary_bus = get_secondary_bus(bus, device, function);
-//         check_bus(secondary_bus);
-//     }
-// }
 
 void check_device(uint8_t bus, uint8_t device, uint8_t *starting_address, uint8_t starting_bus) {
     uint8_t function = 0;
  
-    void *physical_address = get_physical_address(bus, device, function, starting_address, starting_bus);
+    pci_header_t *physical_address = get_physical_address(bus, device, function, starting_address, starting_bus);
 
-    uint16_t vendor_id = get_vendor_id((uint16_t *) physical_address);
+    uint16_t vendor_id = physical_address->vendor_id;
     if (vendor_id == 0xFFFF) return; // Device doesn't exist
-    printf("ID = %x\n", vendor_id);
-    // check_function(bus, device, function);
-    // uint8_t header_type = get_header_type((uint8_t *) physical_address);
-    // if ((header_type & 0x80) != 0) {
-    //     // It's a multi-function device, so check remaining functions
-    //     for (function = 1; function < 8; function++) {
-    //         physical_address = get_physical_address(bus, device, function, starting_address, starting_address);
-    //         if (get_vendor_id(physical_address) != 0xFFFF) {
-    //             check_function(bus, device, function);
-    //         }
-    //     }
-    // }
+    printf("\nDevice found:\n");
+    printf("Device ID: %x\n", physical_address->device_id);
+    printf("Vendor ID: %x\n", vendor_id);
+    printf("Status: %x\n", physical_address->status);
+    printf("Command: %x\n", physical_address->command);
+    printf("Class Code: %x\n", physical_address->class_code);
+    printf("Subclass: %x\n", physical_address->subclass);
+    printf("Prog IF: %x\n", physical_address->prog_if);
+    printf("Revision ID: %x\n", physical_address->revision_id);
+    printf("BIST: %x\n", physical_address->bist);
+    printf("Header Type: %x\n", swap_byte(physical_address->header_type));
+    printf("Latency Timer: %x\n", physical_address->latency_timer);
+    printf("Cache Line Size: %x\n", physical_address->cache_line_size);
+
+
+    printf("Enter anything for next: ");
+    char c = getchar();
+    printf("\n");
 }
 
 void check_all_buses(uint8_t *starting_address, uint8_t starting_bus) {
