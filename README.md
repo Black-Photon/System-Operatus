@@ -22,7 +22,6 @@ Instructions assume using WSL for `make` and Windows for `./run.ps1`.
 2) Run using `./run.ps1`
 
 ## Next Steps
-- Recursive PCI bus searching
-- Comment and factorise
+- Comment and refactor
 - Understand header structure/PCI better
 - Get SATA controller

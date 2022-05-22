@@ -61,6 +61,9 @@ pci_header_t *get_physical_address(uint8_t bus, uint8_t device, uint8_t function
     return (pci_header_t *) (starting_address + ((bus - starting_bus) << 20 | device << 15 | function << 12));
 }
 
+// TODO create .h
+void check_bus(uint8_t bus, uint8_t *starting_address, uint8_t starting_bus);
+
 void check_device(uint8_t bus, uint8_t device, uint8_t *starting_address, uint8_t starting_bus) {
     uint8_t function = 0;
  
@@ -82,7 +85,7 @@ void check_device(uint8_t bus, uint8_t device, uint8_t *starting_address, uint8_
     printf("Latency Timer: %x\n", physical_address->latency_timer);
     printf("Cache Line Size: %x\n", physical_address->cache_line_size);
 
-    // if (false)
+    if (false)
     switch (swap_byte(physical_address->header_type)) {
     case 0:
         pci_header_0_t *header_0 = (pci_header_0_t *) physical_address;
@@ -164,15 +167,35 @@ void check_device(uint8_t bus, uint8_t device, uint8_t *starting_address, uint8_
     printf("Enter anything for next: ");
     char c = getchar();
     printf("\n");
+
+    uint8_t base_class = physical_address->class_code;
+    uint8_t sub_class = physical_address->subclass;
+    if ((base_class == 0x6) && (sub_class == 0x4) && (swap_byte(physical_address->header_type) == 1)) {
+        pci_header_1_t *header_1 = (pci_header_1_t *) physical_address;
+        uint8_t secondary_bus = header_1->secondary_bus_number;
+        check_bus(secondary_bus, starting_address, starting_bus);
+    }
+}
+
+void check_bus(uint8_t bus, uint8_t *starting_address, uint8_t starting_bus) {
+    for (uint8_t device = 0; device < 32; device++) {
+        check_device(bus, device, starting_address, starting_bus);
+    }
 }
 
 void check_all_buses(uint8_t *starting_address, uint8_t starting_bus) {
-    uint16_t bus;
-    uint8_t device;
+    int8_t bus = 0;
+    int8_t device = 0;
+    int8_t function = 0;
 
-    for (bus = 0; bus < 256; bus++) {
-        for (device = 0; device < 32; device++) {
-            check_device(bus, device, starting_address, starting_bus);
+    pci_header_t *physical_address = get_physical_address(bus, device, function, starting_address, starting_bus);
+    if (swap_byte(physical_address->header_type) != 2) {
+        check_bus(function, starting_address, starting_bus);
+    } else {
+        for (function = 0; function < 8; function++) {
+            physical_address = get_physical_address(bus, device, function, starting_address, starting_bus);
+            if (physical_address->vendor_id == 0xFFFF) break;
+            check_bus(function, starting_address, starting_bus);
         }
     }
 }
