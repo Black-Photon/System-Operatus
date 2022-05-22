@@ -20,3 +20,9 @@ Attempt to create a new Operating System based on tutorials from https://wiki.os
 Instructions assume using WSL for `make` and Windows for `./run.ps1`.
 1) Build using `make`
 2) Run using `./run.ps1`
+
+## Next Steps
+- Recursive PCI bus searching
+- Comment and factorise
+- Understand header structure/PCI better
+- Get SATA controller
