@@ -10,3 +10,9 @@ uint8_t swap_byte(uint8_t byte) {
     new_byte += (byte >> 7) & 0b00000001;
     return new_byte;
 }
+
+void handle_error(char *string) {
+    printf(string);
+    printf("Enter anything to continue: ");
+    char c = getchar();
+}
