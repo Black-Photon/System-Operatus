@@ -6,13 +6,15 @@
 #include "std.h"
 #include "pci.h"
 
+// Keep track of the initial locations of the PCI header space
 static uint8_t *base_address;
 static uint8_t start_bus_no;
 
+// Keep a list of all devices
 static size_t device_list_size = 0;
 static pci_header_t **all_devices = NULL;
 
-void *init_pci(mcfg_t *mcfg) {
+pci_device_list_t init_pci(mcfg_t *mcfg) {
     uint32_t no_entries = (mcfg->length-44)/16;
     mcfg_entry_t *entry_ptr = (mcfg_entry_t *) &mcfg->entry;
     for (size_t i = 0; i < no_entries; i++) {
@@ -85,8 +87,10 @@ void *init_pci(mcfg_t *mcfg) {
                 printf("Memory Base: %x\n", header_1->memory_base);
                 printf("Prefetchable Memory Limit: %x\n", header_1->prefetchable_memory_limit);
                 printf("Prefetchable Memory Base: %x\n", header_1->prefetchable_memory_base);
-                printf("Prefetchable Base Upper 32 Bits: %x\n", header_1->prefetchable_base_upper_32);
-                printf("Prefetchable Limit Upper 32 Bits: %x\n", header_1->prefetchable_limit_upper_32);
+                printf("Prefetchable Base Upper 32 Bits: %x\n",
+                    header_1->prefetchable_base_upper_32);
+                printf("Prefetchable Limit Upper 32 Bits: %x\n",
+                    header_1->prefetchable_limit_upper_32);
                 printf("I/O Limit Upper 16 Bits: %x\n", header_1->io_limit_upper_16);   
                 printf("I/O Base Upper 16 Bits: %x\n", header_1->io_base_upper_16);   
                 printf("Capabilities Pointer: %x\n", header_1->capabilities_pointer); 
@@ -117,7 +121,8 @@ void *init_pci(mcfg_t *mcfg) {
                 printf("Interrupt Line: %x\n", header_2->interrupt_line); 
                 printf("Subsystem Vendor ID: %x\n", header_2->subsystem_vendor_id); 
                 printf("Subsystem Device ID: %x\n", header_2->subsystem_device_id); 
-                printf("16-bit PC Card legacy mode base address: %x\n", header_2->pc_card_legacy_mode_base_address); 
+                printf("16-bit PC Card legacy mode base address: %x\n",
+                    header_2->pc_card_legacy_mode_base_address); 
                 break;
             default:
                 char out[100];
@@ -135,10 +140,15 @@ void *init_pci(mcfg_t *mcfg) {
         }
     }
 
+    pci_device_list_t device_list = {all_devices, device_list_size};
+
+    return device_list;
 }
 
 pci_header_t *get_pci_header_at(uint8_t bus, uint8_t device, uint8_t function) {
-    return (pci_header_t *) (base_address + ((bus - start_bus_no) << 20 | device << 15 | function << 12));
+    // Each bus contains 32 devices of up to 8 functions
+    return (pci_header_t *)
+        (base_address + ((bus - start_bus_no) << 20 | device << 15 | function << 12));
 }
 
 void check_device(uint8_t bus, uint8_t device) {
@@ -147,21 +157,27 @@ void check_device(uint8_t bus, uint8_t device) {
     uint16_t vendor_id = header->vendor_id;
     if (vendor_id == 0xFFFF) return; // Device doesn't exist
 
-    void *new_pointer = realloc(all_devices, device_list_size+1);
+    // Add the device to the list
+    void *new_pointer = realloc(all_devices, (device_list_size+1) * sizeof(pci_header_t *));
     if (new_pointer == NULL) {
         handle_error("Could not allocate array\n");
         exit(EXIT_FAILURE);
     }
     all_devices = new_pointer;
-    all_devices[device_list_size-1] = header;
+    all_devices[device_list_size] = header;
+    device_list_size++;
     
-    if ((header->class_code == 0x6) && (header->subclass == 0x4) && (swap_byte(header->header_type) == 1)) {
+    // If PCI-to-PCI, secondary bus will be another valid PCI bus
+    if ((header->class_code == 0x6)
+     && (header->subclass == 0x4)
+     && (swap_byte(header->header_type) == 1)) {
         pci_header_1_t *header_1 = (pci_header_1_t *) header;
         uint8_t secondary_bus = header_1->secondary_bus_number;
         check_bus(secondary_bus);
     }
 
-    if (swap_byte(header->header_type) == 2) { {
+    // Check all functions for PCI-to-CardBus bridges
+    if (swap_byte(header->header_type) == 2) {
         for (uint8_t function = 1; function < 8; function++) {
             header = get_pci_header_at(0, 0, function);
             if (header->vendor_id == 0xFFFF) break;
@@ -181,9 +197,10 @@ void check_all_buses() {
     if (swap_byte(root_header->header_type) != 2) {
         check_bus(0);
     } else {
-        for (uint8_t function = 1; function < 8; function++) {
+        // If root header has multiple functions, check those too
+        for (uint8_t function = 0; function < 8; function++) {
             root_header = get_pci_header_at(0, 0, function);
-            if (root_header->vendor_id == 0xFFFF) break;
+            if (root_header->vendor_id == 0xFFFF) break; // Device doesn't exist
             check_bus(function);
         }
     }
