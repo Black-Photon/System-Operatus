@@ -1,7 +1,7 @@
 #include <uefi/uefi.h>
 #include <stdbool.h>
 
-#include "config.h"
+#include "defs.h"
 #include "types.h"
 #include "std.h"
 #include "pci.h"
@@ -32,6 +32,7 @@ bool verify_checksum(char_t data[], size_t length) {
 }
 
 rsdp_t *get_rsdp_table() {
+    // Find the RSDP table in the system table
     for (size_t i = 0; i < ST->NumberOfTableEntries; i++) {
         efi_configuration_table_t table = ST->ConfigurationTable[i];
         // We get the version 2.0 ACPI table for 64-bit functionality
@@ -55,6 +56,7 @@ mcfg_t *get_mcfg_table(xsdt_t *xsdt) {
         char_t entry_sig[4];
         memcpy(entry_sig, entry, 4);
 
+        // Confirm entry is MCFG by looking at signature
         if(strncmp(entry_sig, "MCFG", 4) == 0) {
             return (mcfg_t *) entry;
         }
@@ -88,16 +90,19 @@ int main(int argc, char **argv)
             verify_checksum((char *) rsdp, 36) ? "true" : "false");
     }
     
-    if (verify_checksum((char *) rsdp, 20) == false) {
+    // Checksum check for RSDP
+    if (!verify_checksum((char *) rsdp, 20)) {
         handle_error("Invalid RSDP table\n");
         return 1;
     }
     
+    // Revision check for RSDP
     if (rsdp->revision == 1) {
         handle_error("RSDP table loaded is v1, when v2 is required\n");
         return 1;
     } else { // Assume future revisions have same structure up to 36 bytes
-        if (verify_checksum((char *) rsdp, 36) == false) {
+        // Extended checksum check for RSDP
+        if (!verify_checksum((char *) rsdp, 36)) {
             handle_error("Invalid RSDP table\n");
             return 1;
         }
@@ -114,6 +119,11 @@ int main(int argc, char **argv)
         printf("XSDT Length: %d\n", xsdt->length);
     }
 
+    // Checksum check for XSDT
+    if (!verify_checksum((char *) xsdt, xsdt->length)) {
+        handle_error("Invalid XSDT table\n");
+        return 1;
+    }
     
     mcfg_t *mcfg = get_mcfg_table(xsdt);
 
@@ -133,7 +143,8 @@ int main(int argc, char **argv)
             verify_checksum((char *) mcfg, mcfg->length) ? "true" : "false");
     }
 
-    if (verify_checksum((char *) mcfg, mcfg->length) == false) {
+    // Checksum check for MCFG
+    if (!verify_checksum((char *) mcfg, mcfg->length)) {
         handle_error("Invalid MCFG table\n");
         return 1;
     }

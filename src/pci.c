@@ -1,7 +1,7 @@
 #include <uefi/uefi.h>
 #include <stdbool.h>
 
-#include "config.h"
+#include "defs.h"
 #include "types.h"
 #include "std.h"
 #include "pci.h"
@@ -15,8 +15,9 @@ static size_t device_list_size = 0;
 static pci_header_t **all_devices = NULL;
 
 pci_device_list_t init_pci(mcfg_t *mcfg) {
-    uint32_t no_entries = (mcfg->length-44)/16;
+    uint32_t no_entries = (mcfg->length-44)/16; // Fixed header is 44 bytes, entry length 16
     mcfg_entry_t *entry_ptr = (mcfg_entry_t *) &mcfg->entry;
+    // Each entry to the MCFG contains a PCI root
     for (size_t i = 0; i < no_entries; i++) {
         mcfg_entry_t *entry = &entry_ptr[i];
 
@@ -34,6 +35,7 @@ pci_device_list_t init_pci(mcfg_t *mcfg) {
         check_all_buses();
     }
 
+    // Iterate over all the devices found
     for (size_t i = 0; i < device_list_size; i++) {
         pci_header_t *pci_header = all_devices[i];
 
