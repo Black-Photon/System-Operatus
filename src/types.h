@@ -369,9 +369,157 @@ typedef volatile struct hba {
 	uint32_t em_control;	            // Enclosure management control
 	uint32_t capabilities_extended;		// Host capabilities extended
 	uint32_t bios_os_handoff;		    // BIOS/OS handoff control and status
-	uint8_t  reserved[0xA0-0x2C];       // Reserved
-	uint8_t  vendor[0x100-0xA0];	    // Vendor specific registers
+	uint8_t reserved[0xA0-0x2C];       // Reserved
+	uint8_t vendor[0x100-0xA0];	    // Vendor specific registers
 	struct hba_port ports[32];	        // Port control registers
 } hba_t;
+
+typedef enum
+{
+	fis_reg_h2d_e	    = 0x27,	// Register FIS - host to device
+	fis_reg_d2h_e       = 0x34,	// Register FIS - device to host
+	fis_dma_act_e       = 0x39,	// DMA activate FIS - device to host
+	fis_dma_setup_e	    = 0x41,	// DMA setup FIS - bidirectional
+	fis_data_e		    = 0x46,	// Data FIS - bidirectional
+	fis_bist_e		    = 0x58,	// BIST activate FIS - bidirectional
+	fis_pio_setup_e	    = 0x5F,	// PIO setup FIS - device to host
+	fis_dev_bits_e	    = 0xA1,	// Set device bits FIS - device to host
+} fis_t;
+
+typedef struct fis_reg_h2d
+{
+	uint8_t fis_type;	    // fis_reg_h2d_e
+    /**
+     * Bit 0-3  - Port Mulitplier
+     * Bit 4-6  - Reserved
+     * Bit 7    - 0: Control, 1: Command
+     */
+    uint8_t options;
+	uint8_t command;	    // Command register
+	uint8_t feature_lower;	// Feature register lower 8 bits
+	uint8_t lba0;		    // LBA low register, 7:0
+	uint8_t lba1;		    // LBA mid register, 15:8
+	uint8_t lba2;		    // LBA high register, 23:16
+	uint8_t device;		    // Device register
+	uint8_t lba3;		    // LBA register, 31:24
+	uint8_t lba4;		    // LBA register, 39:32
+	uint8_t lba5;		    // LBA register, 47:40
+	uint8_t feature_upper;	// Feature register upper 8 bits
+	uint8_t count_lower;	// Count register lower 8 bits
+	uint8_t count_upper;	// Count register upper 8 bits
+	uint8_t icc;		    // Isochronous command completion
+	uint8_t control;	    // Control register
+	uint8_t reserved[4];	// Reserved
+} fis_reg_h2d_t;
+
+typedef struct fis_reg_d2h
+{
+	uint8_t fis_type;	    // fis_reg_d2h_e
+    /**
+     * Bit 0-3  - Port Mulitplier
+     * Bit 4-5  - Reserved
+     * Bit 6    - Interrupt Bit
+     * Bit 7    - Reserved
+     */
+    uint8_t options;
+	uint8_t status;	        // Status register
+	uint8_t error;	        // Error register
+	uint8_t lba0;		    // LBA low register, 7:0
+	uint8_t lba1;		    // LBA mid register, 15:8
+	uint8_t lba2;		    // LBA high register, 23:16
+	uint8_t device;		    // Device register
+	uint8_t lba3;		    // LBA register, 31:24
+	uint8_t lba4;		    // LBA register, 39:32
+	uint8_t lba5;		    // LBA register, 47:40
+	uint8_t reserved;	    // Reserved
+	uint8_t count_lower;	// Count register lower 8 bits
+	uint8_t count_upper;	// Count register upper 8 bits
+	uint8_t reserved1[6];	// Reserved
+} fis_reg_d2h_t;
+
+typedef struct fis_data
+{
+    uint8_t fis_type;	    // fis_data_t
+    /**
+     * Bit 0-3  - Port Mulitplier
+     * Bit 4-7  - Reserved
+     */
+    uint8_t options;
+	uint8_t reserved[2];	// Reserved
+	uint32_t data;	        // Payload
+} fis_data_t;
+
+typedef struct fis_pio_setup
+{
+	uint8_t fis_type;	    // fis_pio_setup_e
+    /**
+     * Bit 0-3  - Port Mulitplier
+     * Bit 4    - Reserved
+     * Bit 5    - Data transfer direction - 0: Host to Device, 1: Device to Host
+     * Bit 6    - Interrupt bit
+     * Bit 7    - Reserved
+     */
+    uint8_t options;
+	uint8_t status;	            // Status register
+	uint8_t error;	            // Error register
+	uint8_t lba0;		        // LBA low register, 7:0
+	uint8_t lba1;	    	    // LBA mid register, 15:8
+	uint8_t lba2;		        // LBA high register, 23:16
+	uint8_t device;		        // Device register
+	uint8_t lba3;		        // LBA register, 31:24
+	uint8_t lba4;		        // LBA register, 39:32
+	uint8_t lba5;		        // LBA register, 47:40
+	uint8_t reserved;	        // Reserved
+	uint8_t count_lower;	    // Count register lower 8 bits
+	uint8_t count_upper;	    // Count register upper 8 bits
+	uint8_t reserved1;	        // Reserved
+	uint8_t e_status;	        // New value of status register
+	uint16_t transfer_count;    // Transfer count
+	uint8_t reserved2[2];	    // Reserved
+} fis_pio_setup_t;
+
+typedef struct fis_dma_setup
+{
+	uint8_t fis_type;	    // fis_dma_setup_e
+    /**
+     * Bit 0-3  - Port Mulitplier
+     * Bit 4    - Reserved
+     * Bit 5    - Data transfer direction - 0: Host to Device, 1: Device to Host
+     * Bit 6    - Interrupt bit
+     * Bit 7    - Auto-activate. Specifies if DMA Activate FIS is needed
+     */
+    uint8_t options;
+	uint8_t reserved[2];	    // Reserved
+	uint64_t dma_buffer_id;		// DMA Buffer Identifier. Used to Identify DMA buffer in host memory.
+                                // SATA Spec says host specific and not in Spec. Trying AHCI spec might work.
+	uint8_t reserved1[4];	    // Reserved
+	uint32_t dma_buffer_offset; // Byte offset into buffer. First 2 bits must be 0
+	uint32_t transfer_count;	// Number of bytes to transfer. Bit 0 must be 0
+	uint8_t reserved2[4];		// Reserved
+} fis_dma_setup_t;
+
+typedef volatile struct hba_fis
+{
+	// 0x00
+	fis_dma_setup_t	dma_setup_fis;		// DMA Setup FIS
+	uint8_t pad0[4];
+ 
+	// 0x20
+	fis_pio_setup_t	pio_setup_fis;		// PIO Setup FIS
+	uint8_t pad1[12];
+ 
+	// 0x40
+	fis_reg_d2h_t d2h_register_fis;	    // Register – Device to Host FIS
+	uint8_t pad2[4];
+ 
+	// 0x58
+	uint8_t set_device_bits_fis[2];	    // Set Device Bit FIS
+ 
+	// 0x60
+	uint8_t ufis[64];
+ 
+	// 0xA0
+	uint8_t reserved[0x100-0xA0];
+} hba_fis_t;
 
 #endif

@@ -19,7 +19,8 @@ void init_ahci(pci_device_list_t device_list) {
 
         if (is_ahci(pci_header)) {
             pci_header_0_t *pci_header_0 = pci_header;
-            hba_t *hba = pci_header_0->bar5;
+            hba_t *hba = pci_header_0->bar5; // Get the HBA table from ABAR (BAR5)
+            
         }
     }
 }
