@@ -5,6 +5,7 @@
 #include "types.h"
 #include "std.h"
 #include "pci.h"
+#include "ahci.h"
 
 /**
  * @brief Determine if two UEFI tables GUID's are identical
@@ -149,7 +150,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    init_pci(mcfg);
+    pci_device_list_t device_list = init_pci(mcfg);
+    init_ahci(device_list);
 
     printf("Enter anything to continue: ");
     char c = getchar();

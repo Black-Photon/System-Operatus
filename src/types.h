@@ -3,7 +3,7 @@
 
 #include <uefi/uefi.h>
 
-struct rsdp {
+volatile struct rsdp {
     /**
      * @brief “RSD PTR ” (Notice that this signature must contain a trailing blank character.)
      */
@@ -52,8 +52,9 @@ struct rsdp {
      */
     uint8_t reserved[3];
 } __attribute__((packed));
+typedef struct rsdp rsdp_t;
 
-struct xsdt {
+volatile struct xsdt {
     /**
      * @brief ‘XSDT’. Signature for the Extended System Description Table.
      */
@@ -101,8 +102,9 @@ struct xsdt {
      */
     char_t entry;
 } __attribute__((packed));
+typedef struct xsdt xsdt_t;
 
-struct mcfg {
+volatile struct mcfg {
     /**
      * @brief Table Signature ("MCFG") 
      */
@@ -149,8 +151,9 @@ struct mcfg {
      */
     char_t entry;
 } __attribute__((packed));
+typedef struct mcfg mcfg_t;
 
-struct mcfg_entry {
+volatile struct mcfg_entry {
     /**
      * @brief Base address of enhanced configuration mechanism 
      */
@@ -172,11 +175,12 @@ struct mcfg_entry {
      */
     uint32_t reserved;
 } __attribute__((packed));
+typedef struct mcfg_entry mcfg_entry_t;
 
 /**
  * More detail in https://wiki.osdev.org/Pci
  */
-struct pci_header {
+typedef volatile struct pci_header {
     /**
      * @brief The ID of the vendor for the device
      */
@@ -218,9 +222,9 @@ struct pci_header {
     uint8_t latency_timer;
     uint8_t header_type;
     uint8_t bist;
-};
+} pci_header_t;
 
-struct pci_header_0 {
+typedef volatile struct pci_header_0 {
     uint16_t vendor_id;
     uint16_t device_id;
     uint16_t command;
@@ -249,9 +253,9 @@ struct pci_header_0 {
     uint8_t interrupt_pin;
     uint8_t min_grant;
     uint8_t max_latency;
-};
+} pci_header_0_t;
 
-struct pci_header_1 {
+typedef volatile struct pci_header_1 {
     uint16_t vendor_id;
     uint16_t device_id;
     uint16_t command;
@@ -287,9 +291,9 @@ struct pci_header_1 {
     uint8_t interrupt_line;
     uint8_t interrupt_pin;
     uint16_t bridge_control;
-};
+} pci_header_1_t;
 
-struct pci_header_2 {
+typedef volatile struct pci_header_2 {
     uint16_t vendor_id;
     uint16_t device_id;
     uint16_t command;
@@ -324,22 +328,50 @@ struct pci_header_2 {
     uint16_t subsystem_device_id;
     uint16_t subsystem_vendor_id;
     uint32_t pc_card_legacy_mode_base_address;
-};
+} pci_header_2_t;
 
-struct pci_device_list {
+typedef volatile struct pci_device_list {
     struct pci_header **all_devices;
     size_t device_list_size;
-};
+} pci_device_list_t;
 
+typedef volatile struct hba_port {
+    uint32_t command_list_base;		    // Command list base address, 1K-byte aligned
+	uint32_t command_list_upper;		// Command list base address upper 32 bits
+	uint32_t fis_base;		            // FIS base address, 256-byte aligned
+	uint32_t fis_upper;		            // FIS base address upper 32 bits
+	uint32_t interrupt_status;		    // Interrupt status
+	uint32_t interrupt_enable;		    // Interrupt enable
+	uint32_t command_and_status;		// Command and status
+	uint32_t reserved;		            // Reserved
+	uint32_t task_file_data;		    // Task file data
+	uint32_t signature;		            // Signature
+	uint32_t sata_status;		        // SATA status (SCR0:SStatus)
+	uint32_t sata_control;		        // SATA control (SCR2:SControl)
+	uint32_t sata_error;		        // SATA error (SCR1:SError)
+	uint32_t sata_active;		        // SATA active (SCR3:SActive)
+	uint32_t command_issue;		        // Command issue
+	uint32_t sata_notification;		    // SATA notification (SCR4:SNotification)
+	uint32_t fis_based_switch_control;  // FIS-based switch control
+	uint32_t reserved1[11];	            // Reserved
+	uint32_t vendor[4];	                // Vendor specific
+} hba_port_t;
 
-typedef struct rsdp rsdp_t;
-typedef struct xsdt xsdt_t;
-typedef struct mcfg mcfg_t;
-typedef struct mcfg_entry mcfg_entry_t;
-typedef struct pci_header pci_header_t;
-typedef struct pci_header_0 pci_header_0_t;
-typedef struct pci_header_1 pci_header_1_t;
-typedef struct pci_header_2 pci_header_2_t;
-typedef struct pci_device_list pci_device_list_t;
+typedef volatile struct hba {
+	uint32_t capabilities;	        	// Host capability
+	uint32_t global_host_control;		// Global host control
+	uint32_t interrupt_status;		    // Interrupt status
+	uint32_t port_implemented;		    // Port implemented
+	uint32_t version;		            // Version
+	uint32_t ccc_control;	            // Command completion coalescing control
+	uint32_t ccc_ports;	                // Command completion coalescing ports
+	uint32_t em_location;	            // Enclosure management location
+	uint32_t em_control;	            // Enclosure management control
+	uint32_t capabilities_extended;		// Host capabilities extended
+	uint32_t bios_os_handoff;		    // BIOS/OS handoff control and status
+	uint8_t  reserved[0xA0-0x2C];       // Reserved
+	uint8_t  vendor[0x100-0xA0];	    // Vendor specific registers
+	struct hba_port ports[32];	        // Port control registers
+} hba_t;
 
 #endif
