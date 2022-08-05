@@ -349,6 +349,12 @@ typedef volatile struct hba_port {
 	// 0x20
 	uint32_t task_file_data;		    // Task file data
 	uint32_t signature;		            // Signature
+    /**
+     * Bit 0-3   - Device detection
+     * Bit 4-7   - Current interface speed
+     * Bit 8-11  - Interface power managment
+     * Bit 12-31 - Reserved
+     */
 	uint32_t sata_status;		        // SATA status (SCR0:SStatus)
 	uint32_t sata_control;		        // SATA control (SCR2:SControl)
 	// 0x30
@@ -367,7 +373,37 @@ typedef volatile struct hba_port {
 
 typedef volatile struct hba {
 	// 0x00
+    /**
+     * Bit 0-4   - Number of Ports (supported in hardward)
+     * Bit 5     - Supports external SATA
+     * Bit 6     - Enclosure management supported
+     * Bit 7     - Command completion coalescing supported
+     * Bit 8-12  - Number of command slots
+     * Bit 13    - Partial state capable
+     * Bit 14    - Slumber state capable
+     * Bit 15    - PIO multiple DRQ block
+     * Bit 16    - FIS-based switching supported
+     * Bit 17    - Supports port multiplier
+     * Bit 18    - Supports AHCI mode only
+     * Bit 19    - Reserved
+     * Bit 20-23 - Interface speed support
+     * Bit 24    - Supports command list override
+     * Bit 25    - Supports activity LED
+     * Bit 26    - Supports aggressive link power management
+     * Bit 27    - Supports staggered spin-up
+     * Bit 28    - Supports mechanical presence switch
+     * Bit 29    - Supports SNotification register
+     * Bit 30    - Supports native command queuing
+     * Bit 31    - Supports 64-bit addressing
+     */
 	uint32_t capabilities;	        	// Host capability
+    /**
+     * Bit 0     - HBA reset
+     * Bit 1     - Interrupt enable
+     * Bit 2     - MSI revert to single message
+     * Bit 3-30  - Reserved
+     * Bit 31    - AHCI Enable
+     */
 	uint32_t global_host_control;		// Global host control
 	uint32_t interrupt_status;		    // Interrupt status
 	uint32_t port_implemented;		    // Port implemented
