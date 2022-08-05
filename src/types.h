@@ -336,42 +336,56 @@ typedef volatile struct pci_device_list {
 } pci_device_list_t;
 
 typedef volatile struct hba_port {
+	// 0x00
     uint32_t command_list_base;		    // Command list base address, 1K-byte aligned
 	uint32_t command_list_upper;		// Command list base address upper 32 bits
 	uint32_t fis_base;		            // FIS base address, 256-byte aligned
 	uint32_t fis_upper;		            // FIS base address upper 32 bits
+	// 0x10
 	uint32_t interrupt_status;		    // Interrupt status
 	uint32_t interrupt_enable;		    // Interrupt enable
 	uint32_t command_and_status;		// Command and status
 	uint32_t reserved;		            // Reserved
+	// 0x20
 	uint32_t task_file_data;		    // Task file data
 	uint32_t signature;		            // Signature
 	uint32_t sata_status;		        // SATA status (SCR0:SStatus)
 	uint32_t sata_control;		        // SATA control (SCR2:SControl)
+	// 0x30
 	uint32_t sata_error;		        // SATA error (SCR1:SError)
 	uint32_t sata_active;		        // SATA active (SCR3:SActive)
 	uint32_t command_issue;		        // Command issue
 	uint32_t sata_notification;		    // SATA notification (SCR4:SNotification)
+	// 0x40
 	uint32_t fis_based_switch_control;  // FIS-based switch control
+	// 0x44
 	uint32_t reserved1[11];	            // Reserved
+	// 0x70
 	uint32_t vendor[4];	                // Vendor specific
+	// 0x80
 } hba_port_t;
 
 typedef volatile struct hba {
+	// 0x00
 	uint32_t capabilities;	        	// Host capability
 	uint32_t global_host_control;		// Global host control
 	uint32_t interrupt_status;		    // Interrupt status
 	uint32_t port_implemented;		    // Port implemented
+	// 0x10
 	uint32_t version;		            // Version
 	uint32_t ccc_control;	            // Command completion coalescing control
 	uint32_t ccc_ports;	                // Command completion coalescing ports
 	uint32_t em_location;	            // Enclosure management location
+	// 0x20
 	uint32_t em_control;	            // Enclosure management control
 	uint32_t capabilities_extended;		// Host capabilities extended
 	uint32_t bios_os_handoff;		    // BIOS/OS handoff control and status
-	uint8_t reserved[0xA0-0x2C];       // Reserved
-	uint8_t vendor[0x100-0xA0];	    // Vendor specific registers
-	struct hba_port ports[32];	        // Port control registers
+	// 0x2C
+	uint8_t reserved[0xA0-0x2C];        // Reserved
+	// 0xA0
+	uint8_t vendor[0x100-0xA0];	        // Vendor specific registers
+	// 0x100
+	hba_port_t ports[32];	            // Port control registers
 } hba_t;
 
 typedef enum
@@ -521,5 +535,50 @@ typedef volatile struct hba_fis
 	// 0xA0
 	uint8_t reserved[0x100-0xA0];
 } hba_fis_t;
+
+typedef struct hba_cmd_header
+{
+    /**
+     * Bit 0-4  - Command FIS length in DWORDS, 2 ~ 16 (DWORD = 4 bytes)
+     * Bit 5    - ATAPI
+     * Bit 6    - Write, 0: Host to Device, 1: Device to Host
+     * Bit 7    - Prefetchable
+     */
+    uint8_t options;
+    /**
+     * Bit 0    - Reset
+     * Bit 1    - BIST
+     * Bit 2    - Clear busy upon R_OK
+     * Bit 3    - Reserved
+     * Bit 4-7  - Port multiplier port
+     */
+    uint8_t options1;
+	uint16_t prd_table_length;		    // Physical region descriptor table length in entries
+	volatile uint32_t prd_byte_count;	// Physical region descriptor byte count transferred
+	uint32_t ctd_base_address;		    // Command table descriptor base address
+	uint32_t ctd_bass_address_upper;	// Command table descriptor base address upper 32 bits
+	uint32_t reserved[4];	// Reserved
+} hba_cmd_header_t;
+ 
+typedef struct hba_prdt_entry
+{
+	uint32_t data_base_address;		    // Data base address
+	uint32_t data_base_address_upper;	// Data base address upper 32 bits
+	uint32_t reserved;		            // Reserved
+    /**
+     * Bit 0-21  - Byte count, 4M max
+     * Bit 22-30 - Reserved
+     * Bit 31    - Interrupt on completion
+     */
+    uint32_t options;
+} hba_prdt_entry_t;
+
+typedef struct hba_cmd_tbl
+{
+	uint8_t command_fis[64];	    // Command FIS
+	uint8_t atapi_command[16];	    // ATAPI command, 12 or 16 bytes
+	uint8_t reserved[48];	        // Reserved
+	hba_prdt_entry_t prdt_entry;	// Physical region descriptor table entries, 0 ~ 65535
+} hba_cmd_tbl_t;
 
 #endif
