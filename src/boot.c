@@ -151,7 +151,10 @@ int main(int argc, char **argv)
     }
 
     pci_device_list_t device_list = init_pci(mcfg);
-    init_ahci(device_list);
+    bool success = init_ahci(device_list);
+    if (!success) {
+        return 1;
+    }
 
     printf("Enter anything to continue: ");
     char c = getchar();

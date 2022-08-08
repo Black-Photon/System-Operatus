@@ -13,6 +13,13 @@ uint8_t swap_byte(uint8_t byte) {
     return new_byte;
 }
 
+uint16_t swap_int16(uint16_t int16) {
+    uint16_t new_int16;
+    new_int16 += (swap_byte((uint8_t) (int16 >> 8) & 0xFF));
+    new_int16 += (swap_byte((uint8_t) int16 & 0xFF)) << 8;
+    return new_int16;
+}
+
 void handle_error(char *string) {
     printf(string);
     printf("Enter anything to continue: ");

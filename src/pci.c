@@ -27,6 +27,7 @@ pci_device_list_t init_pci(mcfg_t *mcfg) {
             printf("- PCI segment group number: %d\n", entry->pci_segment_group_number);
             printf("- Start bus number: %d\n", entry->start_bus_no);
             printf("- End bus number: %d\n", entry->end_bus_no);
+            printf("\n");
         }
 
         base_address = (uint8_t *) entry->base_address;
@@ -35,11 +36,15 @@ pci_device_list_t init_pci(mcfg_t *mcfg) {
         check_all_buses();
     }
 
+    if (BOOT_VERBOSE & PCI_VERBOSE) {
+        printf("Loading PCI entries:\n");
+    }
+
     // Iterate over all the devices found
     for (size_t i = 0; i < device_list_size; i++) {
         pci_header_t *pci_header = all_devices[i];
 
-        if (BOOT_VERBOSE) {
+        if (BOOT_VERBOSE & PCI_VERBOSE) {
             printf("\nDevice found:\n");
             printf("Device ID: %x\n", pci_header->device_id);
             printf("Vendor ID: %x\n", pci_header->vendor_id);
@@ -130,6 +135,7 @@ pci_device_list_t init_pci(mcfg_t *mcfg) {
                 char out[100];
                 int err = sprintf(out, "Unknown header %d\n", pci_header->header_type);
                 if (err > 0) {
+                    out[99] = '\n';
                     handle_error(out);
                 } else {
                     handle_error("Failed to write error\n");
@@ -142,18 +148,58 @@ pci_device_list_t init_pci(mcfg_t *mcfg) {
         }
     }
 
+    if (BOOT_VERBOSE & PCI_VERBOSE) {
+        printf("PCI loading complete\n\n");
+    }
+
     pci_device_list_t device_list = {all_devices, device_list_size};
 
     return device_list;
 }
 
-pci_header_t *get_pci_header_at(uint8_t bus, uint8_t device, uint8_t function) {
+bool enable_msi(pci_header_0_t *header) {
+    // TODO handle MSI-X
+    if (!(header->status & 0x10)) {
+        handle_error("Capability reading for this device is disabled\n");
+        return false;
+    }
+    void *capabilities_pointer = header->capabilities_pointer & 0xFC; // All but last 2 bits
+    pci_msi_capabilities_t *capabilities = (uint32_t) header + (uint32_t) capabilities_pointer;
+    uint8_t first_id = capabilities->id;
+    bool msi_found = false;
+
+    if (first_id == PCI_CAP_MSI) {
+        msi_found = true;
+    } else {
+        capabilities_pointer = capabilities->next & 0xFC;
+        capabilities = (uint32_t) header + (uint32_t) capabilities_pointer;
+
+        while (capabilities->id != first_id) {
+            if (capabilities->id == PCI_CAP_MSI) {
+                msi_found = true;
+                break;
+            }
+
+            capabilities_pointer = capabilities->next & 0xFC;
+            capabilities = (uint32_t) header + (uint32_t) capabilities_pointer;
+        }
+    }
+
+    if (!msi_found) {
+        handle_error("First capability entry is not MSI\n");
+        return false;
+    }
+
+
+}
+
+static pci_header_t *get_pci_header_at(uint8_t bus, uint8_t device, uint8_t function) {
     // Each bus contains 32 devices of up to 8 functions
     return (pci_header_t *)
         (base_address + ((bus - start_bus_no) << 20 | device << 15 | function << 12));
 }
 
-void check_device(uint8_t bus, uint8_t device) {
+static void check_device(uint8_t bus, uint8_t device) {
     pci_header_t *header = get_pci_header_at(bus, device, 0);
 
     uint16_t vendor_id = header->vendor_id;
@@ -188,13 +234,13 @@ void check_device(uint8_t bus, uint8_t device) {
     }
 }
 
-void check_bus(uint8_t bus) {
+static void check_bus(uint8_t bus) {
     for (uint8_t device = 0; device < 32; device++) {
         check_device(bus, device);
     }
 }
 
-void check_all_buses() {
+static void check_all_buses() {
     pci_header_t *root_header = get_pci_header_at(0, 0, 0);
     if (swap_byte(root_header->header_type) != 2) {
         check_bus(0);

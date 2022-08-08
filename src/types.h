@@ -181,6 +181,7 @@ typedef struct mcfg_entry mcfg_entry_t;
  * More detail in https://wiki.osdev.org/Pci
  */
 typedef volatile struct pci_header {
+    // See https://wiki.osdev.org/Pci for more parameter details
     /**
      * @brief The ID of the vendor for the device
      */
@@ -192,27 +193,37 @@ typedef volatile struct pci_header {
     /**
      * @brief Represents available commands
      * 
-     * Bit 0     - I/O Space                          - If set, can respond to I/O space access
-     * Bit 1     - Memory Space                       - If set, can respond to memory space access
-     * Bit 2     - Bus Master                         - If set, can act as a PCI bus holder
-     * Bit 3     - Special Cycles                     - If set, can monitor special cycles
-     * Bit 4     - Memory Write and Invalidate Enable - If set, can use the 'Memory Write AND
-     *                                                  Invalidate' command (as well as'Memory
-     *                                                  Write')
-     * Bit 5     - VGA Palette Snoop                  - If set, doesn't respond to VGA palette
-     *                                                  writes and instead snoops
-     * Bit 6     - Parity Error Response              - If set, will assert the PERR# (Parity Error)
-     *                                                  pin on a parity error (instead of just
-     *                                                  setting the status bit)
+     * Bit 0     - I/O Space
+     * Bit 1     - Memory Space
+     * Bit 2     - Bus Master
+     * Bit 3     - Special Cycles
+     * Bit 4     - Memory Write and Invalidate Enable
+     * Bit 5     - VGA Palette Snoop
+     * Bit 6     - Parity Error Response
      * Bit 7     - Reserved (always 0)
-     * Bit 8     - SERR# Enable                       - If set, SERR# driver is enable
-     * Bit 9     - Fast Back-Back Enable              - If set, can generate fast back-to-back
-     *                                                  transactions to other agent
-     * Bit 10    - Interrupt Disable                  - If set, the INTx# signal (interrupt) is
-     *                                                  disabled
-     * Bit 11-16 - Reserved 
+     * Bit 8     - SERR# Enable
+     * Bit 9     - Fast Back-Back Enable
+     * Bit 10    - Interrupt Disable
+     * Bit 11-15 - Reserved 
      */
     uint16_t command;
+    /**
+     * @brief Represents the status of the device
+     * 
+     * Bit 0-2   - Reserved
+     * Bit 3     - Interrupt Status
+     * Bit 4     - Capabilities List
+     * Bit 5     - 66 MHz Capable 
+     * Bit 6     - Reserved
+     * Bit 7     - Fast Back-to-Back Capable
+     * Bit 8     - Master Data Parity Error 
+     * Bit 9-10  - DEVSEL Timing
+     * Bit 11    - Signalled Target Abort
+     * Bit 12    - Received Target Abort
+     * Bit 13    - Received Master Abort 
+     * Bit 14    - Signaled System Error
+     * Bit 15    - Detected Parity Error
+     */
     uint16_t status;
     uint8_t revision_id;
     uint8_t prog_if;
@@ -334,6 +345,18 @@ typedef volatile struct pci_device_list {
     struct pci_header **all_devices;
     size_t device_list_size;
 } pci_device_list_t;
+
+typedef struct pci_msi_capabilities {
+    uint8_t id;
+    uint8_t next;
+    uint16_t message_control;
+    uint32_t message_address;
+    uint32_t message_address_upper;
+    uint16_t message_data;
+    uint16_t reserved;
+    uint32_t mask;
+    uint32_t pending;
+} pci_msi_capabilities_t;
 
 typedef volatile struct hba_port {
 	// 0x00
